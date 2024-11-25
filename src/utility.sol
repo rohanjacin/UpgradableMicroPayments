@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.27;
 
-import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import "openzeppelin-contracts/contracts/utils/cryptography/MerkleProof.sol";
 
 contract Utility {
 

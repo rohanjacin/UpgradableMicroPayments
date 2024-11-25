@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity 0.8.27;
 import {console} from "forge-std/console.sol";
-import "./BaseLevel.d.sol";
+import "./BaseVersion.d.sol";
 import "./BaseState.d.sol";
 import "./BaseSymbol.d.sol";
 
@@ -87,7 +87,7 @@ abstract contract RuleEngine {
 		// Check for valid input state
 
 		// Call version function to set payment via its selector
-		bytes4 sel = rules[input];
+		bytes4 sel = rules[c];
 
 		(success, ) = versionAddress.delegatecall(
 						abi.encodeWithSelector(sel, a, b, c));

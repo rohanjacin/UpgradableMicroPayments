@@ -3,7 +3,7 @@ pragma solidity 0.8.27;
 import "forge-std/console.sol";
 
 // Basic Data layout
-contract BaseDataD {
+contract BaseData {
 
 	// Location of initial version data
 	address public data;

@@ -91,10 +91,10 @@ contract MicroPay is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine
 		uint8 _symbollen;
 
 		if (num == 1) {
-			_len = 1;
+			_numlen = 1;
 		}
 		else if (num == 2) {
-			_len = 2;
+			_numlen = 2;
 		}
 
 		assembly {
@@ -102,7 +102,7 @@ contract MicroPay is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine
 			let len := mload(_data)
 			let ptr := add(_data, 0x20)
 
-			// Reserve and copy version data 
+/*			// Reserve and copy version data 
 			_num := mload(0x40)
 			mcopy(add(_num, 0x20), ptr, _numlen)
 			mstore(_num, _numlen)
@@ -119,7 +119,7 @@ contract MicroPay is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine
 			mcopy(add(_symbol, 0x20), add(ptr, add(_numlen, _statelen)), mul(_symbollen, 4))
 			mstore(_symbol, mul(_symbollen, 4))
 			mstore(0x40, add(_symbol, 0x40))			
-		}
+*/		}
 	}
 
 	// Loads the version

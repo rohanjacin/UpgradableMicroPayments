@@ -3,7 +3,6 @@ pragma solidity 0.8.27;
 import {console} from "forge-std/console.sol";
 import "openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
 import "openzeppelin-contracts/contracts/utils/cryptography/MessageHashUtils.sol";
-import "./BaseState.sol";
 import "./IVersionConfigurator.sol";
 
 error BiddersAddressInvalid();
@@ -169,7 +168,7 @@ contract VersionConfigurator {
         bytes memory _versionCode,
         bytes memory _versionNumber,
         bytes memory _versionState,
-        bytes memory _versionSymbols,
+        bytes memory _versionSymbols
     ) internal returns (bool success) {
         VersionConfig memory config = VersionConfig(
             uint256(0), uint256(0), uint256(0),

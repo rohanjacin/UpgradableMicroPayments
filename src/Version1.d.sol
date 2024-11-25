@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity 0.8.27;
 
-import "./BaseLevel.d.sol";
+import "./BaseVersion.d.sol";
 import "./BaseState.d.sol";
 import "./BaseSymbol.d.sol";
 import "./BaseData.d.sol";
 import {console} from "forge-std/console.sol";
 
 // Version 1 defination and implementation
-contract Version1D is BaseLevelD, BaseStateD, BaseSymbolD, BaseDataD {
+contract Version1D is BaseVersionD, BaseStateD, BaseSymbolD, BaseDataD {
 	constructor (bytes memory versionNum,
 				 bytes memory state,
 		         bytes memory symbols)
@@ -26,7 +26,7 @@ contract Version1D is BaseLevelD, BaseStateD, BaseSymbolD, BaseDataD {
 		public returns(bool success){
 
 		// Copy version num
-		success = BaseLevelD.copyLevel(_versionNumData);
+		success = BaseVersionD.copyVersion(_versionNumData);
 		// Copy version state as per schema
 		success = _copyState(_stateData);
 		// Copy version symbols as per schema
