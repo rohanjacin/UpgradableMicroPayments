@@ -3,6 +3,19 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+   "directories": {
+    "app": "app",
+    "lib": "lib",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rohanjacin/UpgradableMicroPayments.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rohanjacin/UpgradableMicroPayments/issues"
+  }, 
+  "homepage": "https://github.com/rohanjacin/UpgradableMicroPayments#readme",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
