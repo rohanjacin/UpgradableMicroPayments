@@ -1,0 +1,8 @@
+cache/
+out/
+lib/forge-std
+lib/openzeppelin-contracts
+broadcast/
+node_modules/
+package-lock.json
+
