@@ -15,6 +15,7 @@ contract PaymentChannelV2 {
     }
 
     mapping(address => Channel) channelsMapping;
+    mapping(address => mapping(address => uint256)) payableMerchants;
     mapping(bytes32 => bool) public consumedTokens;
 
     event ChannelCreated(
@@ -65,8 +66,8 @@ contract PaymentChannelV2 {
     ) public {
         Channel storage channel = channelsMapping[payer];
         require(
-            utility.verifyMerkleProof(token, merkleProof, channel.trustAnchor),
-            "Verification failed"
+            utility.verifyMerkleProof(merkleProof, channel.trustAnchor, token),
+            "Token verification failed"
         );
         require(!consumedTokens[token], "Token already used.");
         consumedTokens[token] = true;
