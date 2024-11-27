@@ -11,7 +11,7 @@ contract PaymentChannelV2 {
         uint256 amount;
         uint256 withdrawAfterBlocks;
         uint256 numberOfTokens;
-        mapping(address => uint256) payableMerchants;
+        // mapping(address => uint256) payableMerchants;
     }
 
     mapping(address => Channel) channelsMapping;
@@ -50,7 +50,7 @@ contract PaymentChannelV2 {
             channelsMapping[msg.sender].amount == 0,
             "Channel already exists."
         );
-        Channel storage newChannel = channelsMapping[msg.sender];
+        Channel memory newChannel = channelsMapping[msg.sender];
         newChannel.trustAnchor = trustAnchor;
         newChannel.amount = amount;
         newChannel.withdrawAfterBlocks = withdrawAfterBlocks;
@@ -64,24 +64,25 @@ contract PaymentChannelV2 {
         bytes32[] calldata merkleProof,
         bytes32 token
     ) public {
-        Channel storage channel = channelsMapping[payer];
+        Channel memory channel = channelsMapping[payer];
         require(
             utility.verifyMerkleProof(merkleProof, channel.trustAnchor, token),
             "Token verification failed"
         );
         require(!consumedTokens[token], "Token already used.");
         consumedTokens[token] = true;
-        channel.payableMerchants[msg.sender] += 1;
+        // channel.payableMerchants[msg.sender] += 1;
+        payableMerchants[payer][msg.sender] += 1;
         emit TokenAdded(payer, msg.sender, token);
     }
 
     function payMerchant(address payer, address merchant) public {
         Channel storage channel = channelsMapping[payer];
         uint256 payableAmount = (channel.amount *
-            channel.payableMerchants[merchant]) / channel.numberOfTokens;
+            payableMerchants[payer][merchant]) / channel.numberOfTokens;
         require(payableAmount > 0, "No amount is payable.");
 
-        channel.payableMerchants[merchant] = 0;
+        payableMerchants[payer][merchant] = 0;
 
         (bool sent, ) = payable(merchant).call{value: payableAmount}("");
         require(sent, "Failed to send Ether");
@@ -89,10 +90,10 @@ contract PaymentChannelV2 {
     }
 
     function getMerchantBalance(
-        address user,
+        address payer,
         address merchant
     ) public view returns (uint256) {
-        return channelsMapping[user].payableMerchants[merchant];
+        return payableMerchants[payer][merchant];
     }
 
     receive() external payable {}
