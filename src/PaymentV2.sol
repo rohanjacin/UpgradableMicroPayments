@@ -1,100 +1,112 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import "./Utility.sol";
+import "./BaseVersion.d.sol";
+import "./BaseState.d.sol";
+import "./BaseSymbol.d.sol";
+import "./BaseData.d.sol";
+import "murky/src/CompleteMerkle.sol";
 
-contract PaymentV2 {
-    Utility public utility;
-
-    struct Channel {
-        bytes32 trustAnchor;
-        uint256 amount;
-        uint256 withdrawAfterBlocks;
-        uint256 numberOfTokens;
-        // uint256 payableTokens;
-        // mapping(address => uint256) payableMerchants;
+// Payment verison 2 defination and implementation
+contract PaymentV2 is BaseVersionD, BaseStateD, BaseSymbolD, BaseDataD {
+    constructor(bytes memory versionNum,
+                bytes memory state,
+                bytes memory symbols)
+        BaseDataD(versionNum, state, symbols) {
+        
+        merkleTree = new CompleteMerkle();
     }
 
-    // mapping(address => Channel) channelsMapping;
-    // payer -> merchant -> Channel
-    mapping(address => mapping(address => Channel)) public channelsMapping;
-    // payer -> merchant -> number of tokens
-    mapping(address => mapping(address => uint256)) payableMerchants;
-    mapping(bytes32 => bool) public consumedTokens;
+    // Merkle tree utility contract (occupies Slot 3)
+    CompleteMerkle public merkleTree;
 
-    event ChannelCreated(
-        address indexed payer,
-        uint256 amount,
-        uint256 numberOfTokens
-    );
-    event TokenAdded(
-        address indexed payer,
-        address indexed merchant,
-        bytes32 token
-    );
-    event MerchantPaid(
-        address indexed payer,
-        address indexed merchant,
-        uint256 amount
-    );
+    event ChannelCreated(address indexed payer, uint256 amount,
+                         uint256 numberOfTokens);
 
-    constructor(address utilityAddress) {
-        utility = Utility(utilityAddress);
+    event TokenAdded(address indexed payer, address indexed merchant,
+                     bytes32 token);
+    
+    event MerchantPaid(address indexed payer, address indexed merchant,
+                       uint256 amount);
+
+    function verifyMerkleProof(
+        bytes32[] memory proof,
+        bytes32 root,
+        bytes32 leaf
+    ) public view returns (bool) {
+        return merkleTree.verifyProof(root, proof, leaf);
     }
 
-    function createChannel(
-        address merchant,
-        bytes32 trustAnchor,
-        uint256 amount,
-        uint256 withdrawAfterBlocks,
-        uint256 numberOfTokens
+    // Get merchant balance
+    function getBalance(address payer, address merchant)
+        public view returns (uint256 amount) {
+
+        bytes memory _data = BaseStateD.getState(payer, merchant);        
+        
+        assembly {
+            amount := mload(add(_data, 0x40))
+        }
+    }
+
+    // Create channel for payment
+    function createChannelV2(address merchant, bytes32 trustAnchor,
+        uint256 amount, uint256 numberOfTokens, uint256 withdrawAfterBlocks
     ) public payable {
+
+        // Perform preset checks for channel
         require(msg.value == amount, "incorrect amount sent.");
-        // prevent accidental overwrite
-        require(
-            channelsMapping[msg.sender][merchant].amount == 0,
-            "Channel already exists."
-        );
-        Channel storage newChannel = channelsMapping[msg.sender][merchant];
-        newChannel.trustAnchor = trustAnchor;
-        newChannel.amount = amount;
-        newChannel.withdrawAfterBlocks = withdrawAfterBlocks;
-        newChannel.numberOfTokens = numberOfTokens;
 
-        emit ChannelCreated(msg.sender, amount, numberOfTokens);
+        // Check if channel already exist
+        bytes memory _state = BaseStateD.getState(msg.sender, merchant);
+
+        assembly {
+            let _amount := mload(add(_state, 0x40))
+
+            if iszero(iszero(_amount)) {
+                revert (0, 0)
+            }
+        }
+
+        // Create a channel for merchant
+        bytes memory _data = abi.encodePacked(trustAnchor, amount,
+                             numberOfTokens, withdrawAfterBlocks);
+        BaseStateD.setState(merchant, _data); 
+
+        emit ChannelCreated(msg.sender, amount, numberOfTokens);               
     }
 
-    function addTokenToChannel(
-        address payer,
-        bytes32[] calldata merkleProof,
-        bytes32 token
-    ) public {
-        Channel storage channel = channelsMapping[payer][msg.sender];
-        require(
-            utility.verifyMerkleProof(merkleProof, channel.trustAnchor, token),
-            "Token verification failed"
-        );
-        require(!consumedTokens[token], "Token already used.");
-        consumedTokens[token] = true;
-        // channel.payableMerchants[msg.sender] += 1;
-        payableMerchants[payer][msg.sender] += 1;
-        emit TokenAdded(payer, msg.sender, token);
+
+    // Withdraw from channel
+    function withdrawChannelV2(address payer, bytes32 finalHashValue,
+        uint256 numberOfTokensUsed) public
+        returns(uint256 amount, uint256 numberOfTokens) {
+
+        bytes memory _data = BaseStateD.getState(payer, msg.sender);        
+        
+        bytes32 _trustAnchor;
+
+        assembly {
+            let ptr := mload(_data)
+
+            _trustAnchor := mload(add(_data, 0x20))
+            amount := mload(add(_data, 0x40))
+            numberOfTokens := mload(add(_data, 0x60))
+        }
+
+        console.log("amount:", amount);
+        console.log("numberOfTokens:", numberOfTokens);
+
+        require(amount > 0, "Amount not payable");
+
+        //require(_verifyHashchain(_trustAnchor, finalHashValue,
+        //        numberOfTokensUsed), "Verification failed");
     }
 
-    function withdrawChannel(address payer, address merchant) public {
-        Channel storage channel = channelsMapping[payer][merchant];
-        uint256 payableAmount = (channel.amount *
-            payableMerchants[payer][merchant]) / channel.numberOfTokens;
-        require(payableAmount > 0, "No amount is payable.");
+    // Inherited from BaseState - all implemented and supported states in versions
+    function supportedStates() public pure override returns (bytes memory) {
 
-        payableMerchants[payer][merchant] = 0;
-
-        (bool sent, ) = payable(merchant).call{value: payableAmount}("");
-        require(sent, "Failed to send Ether");
-        emit MerchantPaid(payer, merchant, payableAmount);
+        return abi.encodePacked(bytes4(this.createChannelV2.selector),  //
+                                bytes4(this.withdrawChannelV2.selector)); //
     }
 
-    receive() external payable {}
-
-    fallback() external payable {}
 }

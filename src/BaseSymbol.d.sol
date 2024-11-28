@@ -8,7 +8,7 @@ contract BaseSymbolD {
 
 	// Symbols (unicode 4 bytes max)
 	struct Symbols {
-		bytes4[] v;
+		bytes6[] v;
 	}
 
 	// Unicode mapping
