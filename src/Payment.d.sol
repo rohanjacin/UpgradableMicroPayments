@@ -167,7 +167,7 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
 			_symbols.v[i] = getSymbol(i);
 		}
 
-		addRules(payments[id].versionCode, _symbols);
+		//addRules(payments[id].versionCode, _symbols);
 
 		return (true, "Version loaded");
 	}

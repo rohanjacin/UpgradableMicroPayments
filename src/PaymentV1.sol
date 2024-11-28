@@ -12,7 +12,6 @@ contract PaymentV1 is BaseVersionD, BaseStateD, BaseSymbolD, BaseDataD {
                 bytes memory state,
                 bytes memory symbols)
         BaseDataD(versionNum, state, symbols) {
-        
     }
 
     // Verifies payment hash

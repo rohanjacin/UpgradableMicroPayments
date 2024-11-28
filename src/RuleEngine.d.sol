@@ -4,11 +4,12 @@ import {console} from "forge-std/console.sol";
 import "./BaseVersion.d.sol";
 import "./BaseState.d.sol";
 import "./BaseSymbol.d.sol";
+import { IPayment } from "./IPayment.sol";
 
 error RuleInvalid();
 
 // Applies rules across all versions
-abstract contract RuleEngine {
+contract RuleEngine {
 
     bytes16 private constant HEX_DIGITS = "0123456789abcdef";
 
@@ -16,7 +17,7 @@ abstract contract RuleEngine {
 	mapping(uint8 => bytes4) rules;
 
 	// Add a rule
-	function addRules(address codeAddress, BaseSymbolD.Symbols memory symbols) internal {
+	function addRules(address codeAddress, BaseSymbolD.Symbols memory symbols) external {
 
 		(bool ret, bytes memory selectors) = codeAddress.call(
 			abi.encodeWithSignature("supportedStates()"));
@@ -40,16 +41,37 @@ abstract contract RuleEngine {
 		for (uint8 i = numSymbols; i > 0; i--) {
 
 			// Append state symbol to default set cell call
-			uint256 _symbol;
+			bytes4 _symbol;
+			bytes2 _version;
+			bytes6 _val;
 			assembly {
 				let ptr := add(symbols, 0x20)
-				_symbol := mload(add(ptr, mul(i, 0x20))) 
+				_val := mload(add(ptr, mul(i, 0x20)))
+				_symbol := _val
+				_version := shl(32, _val)
 			}
-			string memory symbolString = toSymbolString(uint256(_symbol), 4);
 
-			bytes memory func = abi.encodePacked("setPaymentu",
-				abi.encodePacked(symbolString), "(uint8,uint8,uint8)");
+			bytes memory func;
 
+			if (_symbol == IPayment(address(this)).createChannel.selector) {
+				func = abi.encodePacked("createChannel");
+			}
+			else if (_symbol == IPayment(address(this)).withdrawChannel.selector) {
+				func = abi.encodePacked("withdrawChannel");
+			}
+			else {
+				revert RuleInvalid();
+			}
+
+			func = abi.encodePacked(func, _version/*toSymbolString(_version, 2)*/);
+
+			if (_symbol == IPayment(address(this)).createChannel.selector) {
+				func = abi.encodePacked(func, "(address,bytes32,uint256,uint256,uint256)");
+			}
+			else if (_symbol == IPayment(address(this)).withdrawChannel.selector) {
+				func = abi.encodePacked(func, "(address,bytes32,uint256)");
+			}
+				
 			// Calulate the signature for set call function
 			bytes4 sel = bytes4(keccak256(abi.encodePacked(func)));
 
@@ -95,7 +117,7 @@ abstract contract RuleEngine {
 
 	// 
 	function toSymbolString(uint256 value, uint256 length) internal pure returns (string memory) {
-	    uint256 localValue = value>>(28*8);
+	    uint256 localValue = value>>(30*8);
 
 	    bytes memory buffer = new bytes(2 * length);
 	    for (uint256 i = 0; i < (2 * length); i++) {
@@ -106,5 +128,5 @@ abstract contract RuleEngine {
 	        revert ();
 	    }
 	    return string(buffer);
-	}
+	}	
 }
