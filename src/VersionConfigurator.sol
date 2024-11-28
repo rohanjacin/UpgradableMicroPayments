@@ -19,9 +19,9 @@ struct VersionConfig {
     uint256 num; // 0x00
     uint256 versionLen; // 0x20 
     uint256 stateLen; // 0x40
-    uint256 symbolLen; // 0x80
+    uint256 symbolLen; // 0x60
+    bytes32 codeHash; // 0x80
     bytes32 hash; // 0xA0
-    bytes32 codeHash; // 0x20
     address codeAddress; // 0xC0
     address dataAddress; // 0xE0
 }
@@ -54,7 +54,8 @@ contract VersionConfigurator {
     function initVersion(
         bytes calldata _versionLen,
         bytes calldata _versionState,
-        bytes calldata _versionSymbols
+        bytes calldata _versionSymbols,
+        bytes32 _versionCodeHash
     ) external payable returns (bool success) {
         
         // Check for sender's address
@@ -73,7 +74,6 @@ contract VersionConfigurator {
             revert BiddersVersionStateSizeInvalid();
         }
 
-        console.log("versionNum:", versionNum);
         if (versionNum == 1) {
 
             // Check for number of symbols in version1
@@ -100,12 +100,12 @@ contract VersionConfigurator {
             revert BiddersStatesInvalid();
         }
 
-/*        // Cache reference for version (version code, version num, state and symbols)
-        if (false == _cacheLevel(_versionCode, _versionNumber,
-                            _versionState,_versionSymbols)) {
+        // Cache reference for version (version num, state, symbols and code hash)
+        if (false == _cacheLevel(_versionLen, _versionState,
+                    _versionSymbols, _versionCodeHash)) {
             revert FailedToCacheVersion();
         }
-*/
+
         success = true;
     }
 
@@ -123,24 +123,14 @@ contract VersionConfigurator {
         VersionConfig memory config = proposals[msg.sender];
 
         // Verify version configuration
-        if (
-            (config.versionLen != _versionNumber.length) ||
-            (config.stateLen != _versionState.length) ||
-            (config.symbolLen != _versionSymbols.length)
-        ) {
+        if (config.hash != msgHash) {
             revert FailedToDeployVersion();
         }
 
-        bytes32 hash = keccak256(
-            abi.encodePacked(
-                _versionCode,
-                _versionNumber,
-                _versionState,
-                _versionSymbols
-            )
-        );
-
-        if ((config.hash != hash) || (config.hash != msgHash)) {
+        if ((config.versionLen != _versionNumber.length) ||
+            (config.stateLen != _versionState.length) ||
+            (config.symbolLen != _versionSymbols.length)
+        ) {
             revert FailedToDeployVersion();
         }
 
@@ -160,6 +150,7 @@ contract VersionConfigurator {
 
         assembly {
             let target := create2(0, add(code, 0x20), mload(code), versionId)
+            // Store codeAddress
             mstore(add(config, 0xC0), target)
         }
 
@@ -171,7 +162,22 @@ contract VersionConfigurator {
 
             if (ret == true) {
                 config.dataAddress = abi.decode(addr, (address));
-                proposals[msg.sender] = config;
+
+                assembly {
+                    let ptr := mload(0x40)
+
+                    mstore(ptr, caller())
+                    mstore(0x40, add(ptr, 0x20))
+
+                    mstore(add(ptr, 0x20), proposals.slot)
+                    mstore(0x40, add(ptr, 0x40))
+
+                    let bslot := keccak256(ptr, 0x40)
+                    // Store codeAddress
+                    sstore(add(bslot, 6), mload(add(config, 0xC0)))
+                    // Store dataAddress
+                    sstore(add(bslot, 7), mload(add(config, 0xE0)))
+                }
             }
 
             success = true;
@@ -181,46 +187,35 @@ contract VersionConfigurator {
     // Cache the hash of proposal
     // i.e version code, number, state and symbols
     function _cacheLevel(
-        bytes memory _versionCode,
-        bytes memory _versionNumber,
-        bytes memory _versionState,
-        bytes memory _versionSymbols
+        bytes memory _number,
+        bytes memory _state,
+        bytes memory _symbols,
+        bytes32 _versionCodeHash
     ) internal returns (bool success) {
-        VersionConfig memory config = VersionConfig(
-            uint256(0), uint256(0), uint256(0),
-            uint256(0), bytes32(0), bytes32(0),
-            address(0), address(0)
+
+        // Calculate hash
+        bytes32 _hash = keccak256(
+            abi.encodePacked(_number, _state, _symbols, _versionCodeHash)
         );
 
         // Register the lengths
         assembly {
-            // num
-            let ptr := config
-            mstore(ptr, byte(0, mload(add(_versionNumber, 0x20))))
+            let ptr := mload(0x40)
 
-            // codeLen
-            ptr := add(config, 0x20)
-            mstore(ptr, mload(_versionCode))
+            mstore(ptr, caller())
+            mstore(0x40, add(ptr, 0x20))
 
-            // numLen
-            ptr := add(config, 0x40)
-            mstore(ptr, mload(_versionNumber))
+            mstore(add(ptr, 0x20), proposals.slot)
+            mstore(0x40, add(ptr, 0x40))
 
-            // stateLen
-            ptr := add(config, 0x60)
-            mstore(ptr, mload(_versionState))
-
-            // symbolLen
-            ptr := add(config, 0x80)
-            mstore(ptr, mload(_versionSymbols))
+            let bslot := keccak256(ptr, 0x40)
+            sstore(bslot, byte(0, mload(add(_number, 0x20))))
+            sstore(add(bslot, 1), mload(_number))
+            sstore(add(bslot, 2), mload(_state))
+            sstore(add(bslot, 3), mload(_symbols))
+            sstore(add(bslot, 4), _versionCodeHash)
+            sstore(add(bslot, 5), _hash)
         }
-
-        // Calculate hash
-        config.hash = keccak256(
-            abi.encodePacked(_versionCode, _versionNumber, _versionState, _versionSymbols)
-        );
-
-        proposals[msg.sender] = config;
 
         success = true;
     }
@@ -240,7 +235,7 @@ contract VersionConfigurator {
 
         // Check version number
         uint8 num;
-        
+
         assembly {
             num := byte(0, mload(add(_number, 0x20)))
             

@@ -22,6 +22,16 @@ contract TestVersionConfigurator is Test {
         versionConfig = new VersionConfigurator(admin);
     }
 
+    // Generates version code
+    function _generateVersionCode(uint8 _num) internal pure
+        returns (bytes memory _versionCode) {
+
+        if (_num == 1)
+            _versionCode = hex"60408012";
+        else if (_num == 2) 
+            _versionCode = hex"6040801223";
+    }
+
     // Generates version number
     function _generateVersionNum(uint8 _num) internal pure
         returns (bytes memory _versionNum) {
@@ -87,14 +97,55 @@ contract TestVersionConfigurator is Test {
     // Test init version
     function test_initVersion() external {
 
-        bytes memory number = _generateVersionNum(2);
-        bytes memory state = _generateState(2);
-        bytes memory symbols = _generateSymbols(2);
+        bytes memory number = _generateVersionNum(1);
+        bytes memory state = _generateState(1);
+        bytes memory symbols = _generateSymbols(1);
+        bytes memory code = _generateVersionCode(1);
+        bytes32 codeHash = keccak256(abi.encodePacked(code));
 
         vm.prank(bidder1);
-        versionConfig.initVersion(number, state, symbols);
+        versionConfig.initVersion(number, state, symbols, codeHash);
         vm.stopPrank();
     }
+
+    // Test cache version
+    function test_cacheVersion() external {
+
+/*        bytes memory number = _generateVersionNum(1);
+        bytes memory state = _generateState(1);
+        bytes memory symbols = _generateSymbols(1);
+        bytes memory code = _generateVersionCode(1);
+        bytes32 codeHash = keccak256(abi.encodePacked(code));
+
+        vm.prank(bidder1);
+        versionConfig._cacheLevel(number, state, symbols, codeHash);
+        vm.stopPrank();
+*/    }
+
+    // Test deploy version
+    function test_deployVersion() external {
+
+/*        bytes memory number = _generateVersionNum(1);
+        bytes memory state = _generateState(1);
+        bytes memory symbols = _generateSymbols(1);
+        bytes memory code = _generateVersionCode(1);
+        bytes32 codeHash = keccak256(abi.encodePacked(code));
+
+        vm.prank(bidder1);
+        versionConfig._cacheLevel(number, state, symbols, codeHash);
+        vm.stopPrank();
+
+        bytes32 msghash = keccak256(abi.encodePacked(number,
+            state, symbols, codeHash));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(0xabc124,
+            MessageHashUtils.toEthSignedMessageHash(msghash));
+
+        vm.prank(bidder1);
+        versionConfig.deployVersion(code, number, state, symbols,
+                        msghash, 0x01, abi.encodePacked(r, s, v));
+        vm.stopPrank();
+*/    }
+
 
     // Test Version contents
     function test__checkVersionValidity() external {
