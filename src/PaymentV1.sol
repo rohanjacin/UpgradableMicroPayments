@@ -3,7 +3,7 @@ pragma solidity ^0.8.27;
 
 import "./Utility.sol";
 
-contract PaymentChannel {
+contract PaymentV1 {
     Utility public utility;
 
     struct Channel {

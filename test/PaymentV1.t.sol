@@ -2,11 +2,11 @@
 pragma solidity ^0.8.26;
 
 import "forge-std/Test.sol";
-import "../src/PaymentChannel.sol";
+import "../src/PaymentV1.sol";
 import "../src/Utility.sol";
 
-contract PaymentChannelTest is Test {
-    PaymentChannel public paymentChannel;
+contract PaymentV1Test is Test {
+    PaymentV1 public paymentV1;
     Utility public utility;
 
     address public payer = address(0x123);
@@ -16,8 +16,8 @@ contract PaymentChannelTest is Test {
         // Deploy the Utility contract
         utility = new Utility();
 
-        // Deploy the PaymentChannel contract, passing the utility address
-        paymentChannel = new PaymentChannel(address(utility));
+        // Deploy the PaymentV1 contract, passing the utility address
+        paymentV1 = new PaymentV1(address(utility));
     }
 
     function testCreateChannel() public {
@@ -38,7 +38,7 @@ contract PaymentChannelTest is Test {
         bytes32 trustAnchor = hashChain[numberOfTokens]; // The last hash is the trust anchor
 
         vm.prank(payer); // Simulate transaction from the payer
-        paymentChannel.createChannel{value: amount}(
+        paymentV1.createChannel{value: amount}(
             merchant,
             trustAnchor,
             amount,
@@ -52,7 +52,7 @@ contract PaymentChannelTest is Test {
             uint256 storedAmount,
             uint256 storedTokens,
             uint256 blocks
-        ) = paymentChannel.channelsMapping(payer, merchant);
+        ) = paymentV1.channelsMapping(payer, merchant);
         assertEq(storedTrustAnchor, trustAnchor);
         assertEq(storedAmount, amount);
         assertEq(storedTokens, numberOfTokens);
@@ -79,7 +79,7 @@ contract PaymentChannelTest is Test {
         // Setup a channel
         vm.deal(payer, amount);
         vm.prank(payer);
-        paymentChannel.createChannel{value: amount}(
+        paymentV1.createChannel{value: amount}(
             merchant,
             trustAnchor,
             amount,
@@ -89,14 +89,14 @@ contract PaymentChannelTest is Test {
 
         // Simulate withdrawal
         vm.prank(merchant);
-        paymentChannel.withdrawChannel(
+        paymentV1.withdrawChannel(
             payer,
             finalHashValue,
             numberOfTokensUsed
         );
 
         // Verify channel deletion
-        (, uint256 storedAmount, , ) = paymentChannel.channelsMapping(
+        (, uint256 storedAmount, , ) = paymentV1.channelsMapping(
             payer,
             merchant
         );
