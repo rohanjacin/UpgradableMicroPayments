@@ -56,8 +56,11 @@ contract VersionConfigurator {
         bytes calldata _versionState,
         bytes calldata _versionSymbols
     ) external payable returns (bool success) {
+        
         // Check for sender's address
-        if (msg.sender == address(0)) revert BiddersAddressInvalid();
+        if (msg.sender == address(0)) {
+            revert BiddersAddressInvalid();
+        }
 
         // Check for version number
         uint8 versionNum;
@@ -70,29 +73,32 @@ contract VersionConfigurator {
             revert BiddersVersionStateSizeInvalid();
         }
 
+        console.log("versionNum:", versionNum);
         if (versionNum == 1) {
 
             // Check for number of symbols in version1
-            // (i.e 2 bytes per method/symbol, e.g "V1" is 2 bytes)
-            if (!(_versionSymbols.length == 4)) {
+            // (i.e 6 bytes per method/symbol,
+            // e.g "f26be922V1" is 6 bytes)
+            if (!(_versionSymbols.length == 12)) {
                 // "createChannel" and "withdrawChannel"
                 revert BiddersStatesSymbolsInvalid();
             }
         }
         else if (versionNum == 2) {
 
-            // Check for number of symbols in version2
-            // (i.e 2 bytes per method/symbol, e.g "V2" is 2 bytes)
-            if (!(_versionSymbols.length == 6)) {
+            // Check for number of symbols in version1
+            // (i.e 6 bytes per method/symbol,
+            // e.g "f26be922V2" is 6 bytes)
+            if (!(_versionSymbols.length == 18)) {
                 // "createChannel", "withdrawChannel" and "addToken"
                 revert BiddersStatesSymbolsInvalid();  
             }
         }
 
         // Check state against common version rules
-        //if (1 == _checkVersionValidity(_versionLen, _versionState, _versionSymbols)) {
-        //    revert BiddersStatesInvalid();
-        //}
+        if (1 == _checkVersionValidity(_versionLen, _versionState, _versionSymbols)) {
+            revert BiddersStatesInvalid();
+        }
 
 /*        // Cache reference for version (version code, version num, state and symbols)
         if (false == _cacheLevel(_versionCode, _versionNumber,
@@ -224,7 +230,7 @@ contract VersionConfigurator {
         bytes memory _number,
         bytes memory _state,
         bytes memory _symbols
-    ) external pure returns (uint8 ret) {
+    ) internal pure returns (uint8 ret) {
 
         // Channel
         //bytes32 trustanchor;
@@ -232,11 +238,11 @@ contract VersionConfigurator {
         //uint256 numberOfTokens;
         //uint256 withdrawAfterBlocks;
 
-        uint8 num; 
-
         // Check version number
+        uint8 num;
+        
         assembly {
-            num := mload(_number)
+            num := byte(0, mload(add(_number, 0x20)))
             
             // version number should not be zero
             if iszero(num) {

@@ -10,12 +10,14 @@ import "openzeppelin-contracts/contracts/utils/cryptography/MessageHashUtils.sol
 contract TestVersionConfigurator is Test {
     using ECDSA for bytes32;
     address admin;
+    address bidder1;
+
     VersionConfigurator versionConfig;
 
     function setUp() public {
         
-        uint256 privKeyAdmin = 0xabc123;
-        admin = vm.addr(privKeyAdmin);
+        admin = vm.addr(0xabc123);
+        bidder1 = vm.addr(0xabc124);
 
         versionConfig = new VersionConfigurator(admin);
     }
@@ -69,7 +71,10 @@ contract TestVersionConfigurator is Test {
         else if (_num == 2) {
             bytes6 createChannelV2 = bytes6(abi.encodePacked(hex"f26be922", "V2"));
             bytes6 withdrawChannelV2 = bytes6(abi.encodePacked(hex"8d7cb017", "V2"));
-            _versionSymbols = abi.encodePacked(createChannelV2, withdrawChannelV2);
+            bytes6 addTokenToChannelV2 = bytes6(abi.encodePacked(hex"2b01c5fe", "V2"));
+
+            _versionSymbols = abi.encodePacked(createChannelV2,
+                    withdrawChannelV2, addTokenToChannelV2);
         }
     }
 
@@ -79,14 +84,26 @@ contract TestVersionConfigurator is Test {
 
     }
 
+    // Test init version
+    function test_initVersion() external {
+
+        bytes memory number = _generateVersionNum(2);
+        bytes memory state = _generateState(2);
+        bytes memory symbols = _generateSymbols(2);
+
+        vm.prank(bidder1);
+        versionConfig.initVersion(number, state, symbols);
+        vm.stopPrank();
+    }
+
     // Test Version contents
     function test__checkVersionValidity() external {
 
-        bytes memory number = _generateVersionNum(1);
+/*        bytes memory number = _generateVersionNum(1);
         bytes memory state = _generateState(1);
         bytes memory symbols = _generateSymbols(1);
 
         versionConfig._checkVersionValidity(number, state, symbols);
-    }
+ */   }
 
 }
