@@ -1,71 +1,75 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import "./Utility.sol";
+import "./BaseVersion.d.sol";
+import "./BaseState.d.sol";
+import "./BaseSymbol.d.sol";
+import "./BaseData.d.sol";
 
-contract PaymentV1 {
-    Utility public utility;
-
-    struct Channel {
-        bytes32 trustAnchor;
-        uint256 amount;
-        uint256 numberOfTokens;
-        uint256 withdrawAfterBlocks;
+// Payment verison 1 defination and implementation
+contract PaymentV1 is BaseVersionD, BaseStateD, BaseSymbolD, BaseDataD {
+    constructor(bytes memory versionNum,
+                bytes memory state,
+                bytes memory symbols)
+        BaseDataD(versionNum, state, symbols) {
+        
     }
 
-    // Nested mapping to store channels: user => merchant => Channel
-    mapping(address => mapping(address => Channel)) public channelsMapping;
+    // Verifies payment hash
+    function _verifyHashchain(bytes32 trustAnchor, bytes32 finalHashValue,
+        uint256 numberOfTokensUsed) internal pure returns (bool) {
 
-    constructor(address utilityAddress) {
-        utility = Utility(utilityAddress);
+        for (uint256 i = 0; i < numberOfTokensUsed; i++) {
+            finalHashValue = keccak256(abi.encode(finalHashValue));
+        }
+        return finalHashValue == trustAnchor;
     }
 
-    function createChannel(
-        address merchant,
-        bytes32 trustAnchor,
-        uint256 amount,
-        uint256 numberOfTokens,
-        uint256 withdrawAfterBlocks
+    // Create channel for payment
+    function createChannelV1(address merchant, bytes32 trustAnchor,
+        uint256 amount, uint256 numberOfTokens, uint256 withdrawAfterBlocks
     ) public payable {
+
+        // Perform preset checks for channel
         require(msg.value == amount, "incorrect amount sent.");
-        channelsMapping[msg.sender][merchant] = Channel({
-            trustAnchor: trustAnchor,
-            amount: amount,
-            numberOfTokens: numberOfTokens,
-            withdrawAfterBlocks: withdrawAfterBlocks
-        });
+
+        // Create a channel for merchant
+        bytes memory _data = abi.encodePacked(trustAnchor, amount,
+                             numberOfTokens, withdrawAfterBlocks);
+        BaseStateD.setState(merchant, _data);        
     }
 
-    function withdrawChannel(
-        address payer,
-        bytes32 finalHashValue,
-        uint256 numberOfTokensUsed
-    ) public {
-        Channel storage channel = channelsMapping[payer][msg.sender]; // Use storage to update state directly
-        require(
-            channel.amount > 0,
-            "Channel does not exist or has been withdrawn."
-        );
+    // Withdraw from channel
+    function withdrawChannelV1(address payer, bytes32 finalHashValue,
+        uint256 numberOfTokensUsed) public
+        returns(uint256 amount, uint256 numberOfTokens) {
 
-        require(
-            utility.verifyHashchain(
-                channel.trustAnchor,
-                finalHashValue,
-                numberOfTokensUsed
-            ),
-            "Verification failed."
-        );
+        bytes memory _data = BaseStateD.getState(payer, msg.sender);        
+        
+        bytes32 _trustAnchor;
 
-        uint256 payableAmount = (channel.amount * numberOfTokensUsed) /
-            channel.numberOfTokens;
-        require(payableAmount > 0, "No amount is payable.");
-        delete channelsMapping[payer][msg.sender];
+        assembly {
+            let ptr := mload(_data)
 
-        (bool sent, ) = payable(msg.sender).call{value: payableAmount}("");
-        require(sent, "Failed to send Ether");
+            _trustAnchor := mload(add(_data, 0x20))
+            amount := mload(add(_data, 0x40))
+            numberOfTokens := mload(add(_data, 0x60))
+        }
+
+        console.log("amount:", amount);
+        console.log("numberOfTokens:", numberOfTokens);
+
+        require(amount > 0, "Wrong channel");
+
+        require(_verifyHashchain(_trustAnchor, finalHashValue,
+                numberOfTokensUsed), "Verification failed");
     }
 
-    receive() external payable {}
+    // Inherited from BaseState - all implemented and supported states in versions
+    function supportedStates() public pure override returns (bytes memory) {
 
-    fallback() external payable {}
+        return abi.encodePacked(bytes4(this.createChannelV1.selector),  //
+                                bytes4(this.withdrawChannelV1.selector)); //
+    }
+
 }

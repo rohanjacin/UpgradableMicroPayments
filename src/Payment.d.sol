@@ -15,7 +15,7 @@ error VersionInvalid();
 error VersionCopyFailed();
 error BidderAddressInvalid();
 
-contract MicroPayHouse {
+contract PaymentHouse {
 	address public versionConfigurator;
 
 	constructor(address _admin) {
@@ -24,14 +24,14 @@ contract MicroPayHouse {
 }
 
 // Payment info
-struct MicroPayInfo {
+struct PaymentInfo {
 	address versionCode;
 	address versionData;	
 	string message;
 }
 
-// Game
-contract MicroPay is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine {
+// Payment
+contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine {
 
 	// SLOT 0 is from  (Do NOT use SLOT 0)
 
@@ -45,25 +45,26 @@ contract MicroPay is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine
 
 	// SLOT 5 is from  (Do NOT use SLOT 5)
 
-	// SLOT 6 is for MicroPay Admin
+	// SLOT 6 is for Payment Admin
 	address admin;
-	MicroPayHouse public house;
 
-	// SLOT 7 is 
-	mapping(uint8 => MicroPayInfo) public payments;
+	// SLOT 7 is house
+	PaymentHouse public house;
 
-	// Events	
+	// SLOT 8 is payment instance 
+	mapping(uint8 => PaymentInfo) public payments;
 
 	// Load the default state in Base 
 	constructor(address _admin) {
 		admin = _admin;
-		// MicroPay House components
-		house = new MicroPayHouse(admin);
+		// Payment House components
+		house = new PaymentHouse(admin);
 	}
 
 	fallback() external {
 	}
 
+	// Fetches version configurator
 	function getVersionConfigurator() external view returns(address) {
 		return house.versionConfigurator();
 	}
@@ -72,7 +73,7 @@ contract MicroPay is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine
 	function callVersion(uint8 id, bytes calldata versionCall)
 		external payable returns(bool success, bytes memory data) {
 
-		// MicroPay Address + encoded Function Data (i.e sel, params)
+		// PaymentVersion Address + encoded Function Data (i.e sel, params)
         (address target, bytes memory callData) = abi.decode(versionCall,
 													(address, bytes));
 
@@ -81,6 +82,7 @@ contract MicroPay is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine
 		}
 	}
 
+	// Retrieves the payment version contract's data
 	function retrieveVersion(uint8 num, address data)
 		internal returns (bytes memory _num,
 		bytes memory _state, bytes memory _symbol) {
@@ -156,10 +158,10 @@ contract MicroPay is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine
 		payments[id].versionData = config.dataAddress;
 
 		// Add version rules
-		uint8 _symbolLen = uint8(config.symbolLen/4);
+		uint8 _symbolLen = uint8(config.symbolLen/6);
 		
 		BaseSymbolD.Symbols memory _symbols = BaseSymbolD.Symbols(
-			{v: new bytes4[](_symbolLen)});
+			{v: new bytes6[](_symbolLen)});
 		
 		for (uint8 i = 0; i < _symbolLen; i++) {
 			_symbols.v[i] = getSymbol(i);
@@ -192,9 +194,36 @@ contract MicroPay is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine
 		}
 	}
 
-	function getPayments(uint8 id) external view returns(MicroPayInfo memory info){
+/*	function getPayments(uint8 id) external view returns(MicroPayInfo memory info){
 		return payments[id];
 	}
+*/
+
+    // Create channel for payment
+    function createChannel(address merchant, bytes32 trustAnchor,
+        uint256 amount, uint256 numberOfTokens, uint256 withdrawAfterBlocks
+    ) public payable {
+
+    	// Call version1 or version 2 createChannel method
+    }
+
+    // Withdraw from channel
+    function withdrawChannel(address payer, bytes32 finalHashValue,
+        uint256 numberOfTokensUsed) public
+    	returns (uint256 amount, uint256 numberOfTokens) {
+
+    	// Call version1 or version 2 withdrawChannel method
+
+
+        uint256 payableAmount = (amount * numberOfTokensUsed) /
+                                 numberOfTokens;
+        
+        require(payableAmount > 0, "No amount is payable");
+
+        (bool sent, ) = payable(msg.sender).call{value: payableAmount}("");
+        
+        require(sent, "Failed to send Ether");
+    }
 
     modifier onlyAdmin {
         if (msg.sender != admin) revert("Not Admin");
