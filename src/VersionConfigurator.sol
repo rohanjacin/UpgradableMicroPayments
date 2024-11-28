@@ -96,9 +96,7 @@ contract VersionConfigurator {
         }
 
         // Check state against common version rules
-        if (1 == _checkVersionValidity(_versionLen, _versionState, _versionSymbols)) {
-            revert BiddersStatesInvalid();
-        }
+        _checkVersionValidity(_versionLen, _versionState, _versionSymbols);
 
         // Cache reference for version (version num, state, symbols and code hash)
         if (false == _cacheLevel(_versionLen, _versionState,
@@ -225,7 +223,7 @@ contract VersionConfigurator {
         bytes memory _number,
         bytes memory _state,
         bytes memory _symbols
-    ) internal pure returns (uint8 ret) {
+    ) internal pure {
 
         // Channel
         //bytes32 trustanchor;
