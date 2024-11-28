@@ -13,7 +13,7 @@ contract PaymentV2 is BaseVersionD, BaseStateD, BaseSymbolD, BaseDataD {
                 bytes memory state,
                 bytes memory symbols)
         BaseDataD(versionNum, state, symbols) {
-
+        
         merkleTree = new CompleteMerkle();
     }
 
@@ -74,6 +74,7 @@ contract PaymentV2 is BaseVersionD, BaseStateD, BaseSymbolD, BaseDataD {
 
         emit ChannelCreated(msg.sender, amount, numberOfTokens);               
     }
+
 
     // Withdraw from channel
     function withdrawChannelV2(address payer, bytes32 finalHashValue,
