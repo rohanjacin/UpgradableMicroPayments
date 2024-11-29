@@ -5,10 +5,11 @@ import "./BaseVersion.d.sol";
 import "./BaseState.d.sol";
 import "./BaseSymbol.d.sol";
 import "./BaseData.sol";
+import "./RuleEngine.d.sol";
 import "./VersionConfigurator.sol";
 import "./IVersionConfigurator.sol";
 import { IVersion } from "./IVersion.d.sol";
-import "./RuleEngine.d.sol";
+import { IPayment } from "./IPayment.sol";
 
 // Errors
 error VersionInvalid();
@@ -51,12 +52,13 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
 	// SLOT 7 is house
 	PaymentHouse public house;
 
-	// SLOT 8 is payment instance 
-	mapping(uint8 => PaymentInfo) public payments;
+	// SLOT 8 is payment instance
+	PaymentInfo paymentInfo;
 
 	// Load the default state in Base 
 	constructor(address _admin) {
 		admin = _admin;
+
 		// Payment House components
 		house = new PaymentHouse(admin);
 	}
@@ -77,7 +79,7 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
         (address target, bytes memory callData) = abi.decode(versionCall,
 													(address, bytes));
 
-		if (target ==  payments[id].versionCode) {
+		if (target ==  paymentInfo.versionCode) {
 			(success, data) = target.call{value: msg.value}(callData);
 		}
 	}
@@ -94,9 +96,13 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
 
 		if (num == 1) {
 			_numlen = 1;
+			_statelen = 32;
+			_symbollen = 2;
 		}
 		else if (num == 2) {
-			_numlen = 2;
+			_numlen = 1;
+			_statelen = 32;
+			_symbollen = 2;
 		}
 
 		assembly {
@@ -104,7 +110,7 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
 			let len := mload(_data)
 			let ptr := add(_data, 0x20)
 
-/*			// Reserve and copy version data 
+			// Reserve and copy version data 
 			_num := mload(0x40)
 			mcopy(add(_num, 0x20), ptr, _numlen)
 			mstore(_num, _numlen)
@@ -118,14 +124,16 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
 
 			// Reserve and copy version state 
 			_symbol := mload(0x40)
-			mcopy(add(_symbol, 0x20), add(ptr, add(_numlen, _statelen)), mul(_symbollen, 4))
-			mstore(_symbol, mul(_symbollen, 4))
+			mcopy(add(_symbol, 0x20), add(ptr, add(_numlen, _statelen)), mul(_symbollen, 6))
+			mstore(_symbol, mul(_symbollen, 6))
 			mstore(0x40, add(_symbol, 0x40))			
-*/		}
+		}
+
+		console.log("");
 	}
 
 	// Loads the version
-	function _loadVersion(uint8 id, uint8 _version, address bidder)
+	function _loadVersion(uint8 _version, address bidder)
 		internal returns(bool success, string memory message) {
 
 		IVersionConfigurator.VersionConfig memory config;
@@ -147,6 +155,14 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
 		bytes memory cdata = abi.encodeCall(IVersion.copyVersionData,
 			(_versionnum, _versionstate, _versionsymbol));
 		
+		console.log("config.codeAddress:", config.codeAddress);
+
+		uint256 size;
+		address addr = config.codeAddress;
+		assembly {
+			size := extcodesize(addr)
+		}
+		console.log("SIZE:", size);
 		(success, ) = config.codeAddress.delegatecall(cdata);
 
 		if (success == false) {
@@ -154,8 +170,8 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
 		}
 
 		// Store version address
-		payments[id].versionCode = config.codeAddress;
-		payments[id].versionData = config.dataAddress;
+		paymentInfo.versionCode = config.codeAddress;
+		paymentInfo.versionData = config.dataAddress;
 
 		// Add version rules
 		uint8 _symbolLen = uint8(config.symbolLen/6);
@@ -167,13 +183,13 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
 			_symbols.v[i] = getSymbol(i);
 		}
 
-		//addRules(payments[id].versionCode, _symbols);
+		addRules(paymentInfo.versionCode, _symbols);
 
 		return (true, "Version loaded");
 	}
 
 	// Starts a payment instance
-	function newPayment(uint8 id, uint8 _version, address _bidder)
+	function newPayment(uint8 _version, address _bidder)
 		external onlyAdmin returns (bool success, string memory message) {
 
 		// Check if version requested is for configured versions
@@ -185,7 +201,7 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
 			revert BidderAddressInvalid();
 		}
 
-		(success, message) = _loadVersion(id, _version, _bidder);
+		(success, message) = _loadVersion(_version, _bidder);
 
 		if (success == true) {
 			// Initalize payments
@@ -200,30 +216,54 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
 */
 
     // Create channel for payment
-    function createChannel(address merchant, bytes32 trustAnchor,
-        uint256 amount, uint256 numberOfTokens, uint256 withdrawAfterBlocks
-    ) public payable {
+    function createChannel(address merchant, uint256 amount,
+    	uint256 numberOfTokens, bytes calldata data)
+    	public payable {
+
+    	require (amount == msg.value, "Amount mismatch");
+    	require (merchant != address(0), "Invalid address");
 
     	// Call version1 or version 2 createChannel method
+    	bytes4 sel = IPayment(address(this)).createChannel.selector;
+    	console.log("sel:", uint32(sel));
+
+    	bool success;
+    	bytes memory _data;
+    	(success, _data) = execRule(
+    						sel, merchant, amount, numberOfTokens,
+    						paymentInfo.versionCode, data);
+    	
+    	require(success, "Payment call failed");
     }
 
     // Withdraw from channel
-    function withdrawChannel(address payer, bytes32 finalHashValue,
-        uint256 numberOfTokensUsed) public
-    	returns (uint256 amount, uint256 numberOfTokens) {
+    function withdrawChannel(address payer, uint256 amount, 
+    	uint256 claimTokens, bytes calldata data)
+    	public returns (uint256 _amount, uint256 numberOfTokens) {
+
+    	require (payer != address(0), "Invalid address");
+    	require (claimTokens != 0, "Invalid tokens");
 
     	// Call version1 or version 2 withdrawChannel method
+    	bytes4 sel = IPayment(address(this)).withdrawChannel.selector;
 
+    	bool success; 
+    	bytes memory _data;
+    	(success, _data) = execRule(
+    						sel, payer, amount, claimTokens,
+    						paymentInfo.versionCode, data);
 
-        uint256 payableAmount = (amount * numberOfTokensUsed) /
-                                 numberOfTokens;
+/*    	require(success, "Payment call failed");
+
+        uint256 payableAmount = (amount * claimTokens) /
+                                 numberOfTokens;    		
         
         require(payableAmount > 0, "No amount is payable");
 
         (bool sent, ) = payable(msg.sender).call{value: payableAmount}("");
         
         require(sent, "Failed to send Ether");
-    }
+*/    }
 
     modifier onlyAdmin {
         if (msg.sender != admin) revert("Not Admin");

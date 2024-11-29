@@ -12,12 +12,12 @@ contract BaseVersionD {
 	function copyVersion(bytes memory data) internal returns(bool success) {
 
 		// Copy the 1 byte version number assuming data is packed
-		// with only version number 
+		// with only version number
 		assembly {
 			let len := mload(data)
 			let value := byte(0, mload(add(data, 0x20)))
 
-			// Level 1 and Level 2 only currently!!
+			// Version 1 and Version 2 only currently!!
 			if iszero(value) {
 				revert (0, 0)
 			}

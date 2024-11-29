@@ -152,15 +152,19 @@ contract VersionConfigurator {
             mstore(add(config, 0xC0), target)
         }
 
+        console.log("indeploy:config.codeAddress:", config.codeAddress);
         // Register data address
         if (config.codeAddress != address(0)) {
             (bool ret, bytes memory addr) = config.codeAddress.call{value: 0}(
                 abi.encodeWithSignature("data()")
             );
 
+            console.log("indeploy1.1");
             if (ret == true) {
-                config.dataAddress = abi.decode(addr, (address));
+                console.log("indeploy1.2");
 
+                config.dataAddress = abi.decode(addr, (address));
+                console.log("config.dataAddress:", config.dataAddress);
                 assembly {
                     let ptr := mload(0x40)
 
@@ -177,6 +181,8 @@ contract VersionConfigurator {
                     sstore(add(bslot, 7), mload(add(config, 0xE0)))
                 }
             }
+
+            console.log("indeploy1.3");
 
             success = true;
         }
@@ -249,39 +255,18 @@ contract VersionConfigurator {
 
         }
 
-        // Check state
+        // Check state 
         assembly {
 
+            // check each state is of type erc20 tokenid (i.e bytes32)  
+
             // check if state length is multiple of 
-            // size of channel (currently 1 channel only)
-            let len := mload(_state)
-            if iszero(eq(len, mul(1, 128))) {
+            // tokenid size (currently 1 token only)
+            let ptr := mload(_state)
+            if iszero(ptr) {
                 revert (0, 0)
             }
 
-            // check if trust anchor is empty
-            let trustanchor := mload(add(_state, 0x20))
-            if iszero(iszero(trustanchor)) {
-                revert (0, 0)
-            }
-
-            // check if amount is non zero
-            let amount := mload(add(_state, 0x40))
-            if iszero(amount) {
-                revert (0, 0)
-            }
-
-            // check if number of tokens is non zero
-            let numoftokens := mload(add(_state, 0x80))
-            if iszero(numoftokens) {
-                revert (0, 0)
-            }
-
-            // check if withdraw after blocks is non zero
-            let withdrawafterblocks := mload(add(_state, 0xa0))
-            if iszero(withdrawafterblocks) {
-                revert (0, 0)
-            }
         }
  
         // Check symbols 

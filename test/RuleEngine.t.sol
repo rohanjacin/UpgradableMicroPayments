@@ -18,7 +18,7 @@ contract TestRuleEngine is Test {
         admin = vm.addr(0xabc123);
         bidder1 = vm.addr(0xabc124);
 
-        ruleEngine = new RuleEngine();
+        //ruleEngine = new RuleEngine();
     }
 
     // Generates version number
@@ -106,7 +106,7 @@ contract TestRuleEngine is Test {
         vm.stopPrank();
 
         vm.prank(bidder1);
-        ruleEngine.addRules(address(paymentV1), symbolsStates);
+        //ruleEngine.addRules(address(paymentV1), symbolsStates);
         vm.stopPrank();
     }
 
@@ -123,7 +123,7 @@ contract TestRuleEngine is Test {
         vm.stopPrank();
 
         vm.prank(bidder1);
-        ruleEngine.addRules(address(paymentV2), symbolsStates);
+        //ruleEngine.addRules(address(paymentV2), symbolsStates);
         vm.stopPrank();
     }
 }

@@ -9,15 +9,15 @@ import { IPayment } from "./IPayment.sol";
 error RuleInvalid();
 
 // Applies rules across all versions
-contract RuleEngine {
+abstract contract RuleEngine {
 
     bytes16 private constant HEX_DIGITS = "0123456789abcdef";
 
-	// Rules (cell value vs function sel of rule in version)
-	mapping(uint8 => bytes4) rules;
+	// Rules (wrapper sel vs function sel of rule in version)
+	mapping(bytes4 => bytes4) rules;
 
 	// Add a rule
-	function addRules(address codeAddress, BaseSymbolD.Symbols memory symbols) external {
+	function addRules(address codeAddress, BaseSymbolD.Symbols memory symbols) internal {
 
 		(bool ret, bytes memory selectors) = codeAddress.call(
 			abi.encodeWithSignature("supportedStates()"));
@@ -66,7 +66,7 @@ contract RuleEngine {
 			func = abi.encodePacked(func, _version/*toSymbolString(_version, 2)*/);
 
 			if (_symbol == IPayment(address(this)).createChannel.selector) {
-				func = abi.encodePacked(func, "(address,bytes32,uint256,uint256,uint256)");
+				func = abi.encodePacked(func, "(address,uint256,uint256,bytes)");
 			}
 			else if (_symbol == IPayment(address(this)).withdrawChannel.selector) {
 				func = abi.encodePacked(func, "(address,bytes32,uint256)");
@@ -86,33 +86,28 @@ contract RuleEngine {
 			assert(versionSel == sel);
 
 			// Add the rule
-			rules[i] = versionSel;
+			rules[_symbol] = versionSel;
+			console.log("_symbol:", uint32(_symbol));
 		}
 	}
 
-	// Setting a payment value as per the rule
-	function setPayment(address versionAddress, uint8 a, uint8 b, uint8 c)
-		internal returns(bool success) {
+	// Execute a payment method as per the rule
+	function execRule(bytes4 sel, address from, uint256 amount, 
+		uint256 tokens, address versionAddress, bytes calldata versionData)
+		internal returns(bool success, bytes memory _data) {
 
-		// Check for valid address
-		if (versionAddress == address(0)) {
-			revert();
-		}
-
-		// Check if version contract exists
-		assembly {
-			if iszero(extcodesize(versionAddress)) {
-				revert(0, 0)
-			}
-		}
-
-		// Check for valid input state
-
+		console.log("versionAddress:", versionAddress);
+		console.log("rules[sel]:", uint32(rules[sel]));
 		// Call version function to set payment via its selector
-		bytes4 sel = rules[c];
+		if (rules[sel] == bytes4(0)) {
+			revert RuleInvalid();
+		}
 
-		(success, ) = versionAddress.delegatecall(
-						abi.encodeWithSelector(sel, a, b, c));
+		(success, _data) = versionAddress.delegatecall(
+						abi.encodeWithSelector(rules[sel],
+							from, amount, tokens, versionData));
+
+		console.log("inexecrule:success:", success);
 	}
 
 	// 

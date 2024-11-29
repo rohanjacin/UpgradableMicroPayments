@@ -7,13 +7,13 @@ interface IPayment {
 
 	function getVersionConfigurator() external view returns(address);
 
-    // Create channel for payment
-    function createChannel(address merchant, bytes32 trustAnchor,
-        uint256 amount, uint256 numberOfTokens, uint256 withdrawAfterBlocks
-    ) external;
+    // Create channel for payment (9c2eb48b)
+    function createChannel(address merchant, uint256 amount,
+    	uint256 numberOfTokens, bytes calldata data)
+    	external payable;
 
-    // Withdraw from channel
-    function withdrawChannel(address payer, bytes32 finalHashValue,
-        uint256 numberOfTokensUsed) external
-        returns (uint256 amount, uint256 numberOfTokens);
+    // Withdraw from channel (ad9085d1)
+    function withdrawChannel(address payer, uint256 amount,
+    	uint256 claimTokens, bytes calldata data)
+    	external returns (uint256 _amount, uint256 numberOfTokens);
 }

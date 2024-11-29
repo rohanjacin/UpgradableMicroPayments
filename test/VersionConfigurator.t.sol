@@ -46,27 +46,10 @@ contract TestVersionConfigurator is Test {
     function _generateState(uint8 _num) internal pure
         returns (bytes memory _versionState) {
 
-        bytes32 trustAnchor;
-        uint256 amount;
-        uint256 numberOfTokens;
-        uint256 withdrawAfterBlocks;
-
-        if (_num == 1) {
-            amount = 20000;
-            numberOfTokens = 4000;
-            withdrawAfterBlocks = 100;
-
-            _versionState = abi.encodePacked(trustAnchor, amount,
-                            numberOfTokens, withdrawAfterBlocks);
-        }
-        else if (_num == 2) {
-            amount = 30000;
-            numberOfTokens = 5000;
-            withdrawAfterBlocks = 200;
-
-            _versionState = abi.encodePacked(trustAnchor, amount,
-                            numberOfTokens, withdrawAfterBlocks);            
-        }
+        if (_num == 1)
+            _versionState = abi.encodePacked(bytes32(0x1c8aff950685c2ed4bc3174f3472287b56d9517b9c948127319a09a7a36deac8));
+        else if (_num == 2)
+            _versionState = abi.encodePacked(bytes32(0x0652eee475adfb5c8a28481abd58887b7722a06fc1f675ac72caac9c7fa9c98e));
     }
 
     // Generates symbols for a version

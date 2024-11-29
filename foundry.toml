@@ -1,0 +1,10 @@
+[profile.default]
+# Enables or disables the optimizer
+optimizer = true
+evm_version = "cancun"
+
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"
+
+[etherscan]
+sepolia = { key = "${ETHERSCAN_API_KEY}" }
