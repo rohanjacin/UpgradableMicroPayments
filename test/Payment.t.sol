@@ -119,10 +119,6 @@ contract TestRuleEngine is Test {
         payment.newPayment(1, bidder1);
         vm.stopPrank();
 
-/*        vm.prank(admin);
-        payment.getState(1);
-        vm.stopPrank();*/
-
         bytes32 trustAnchor = bytes32(0x55b45826d9b44a79090d79bd36d5d1cc57e1b70e6c041f5d7b607f3bcd94afe8);
         uint256 amount = 1 ether;
         uint256 withdrawAfterBlocks = 10;

@@ -69,7 +69,7 @@ abstract contract RuleEngine {
 				func = abi.encodePacked(func, "(address,uint256,uint256,bytes)");
 			}
 			else if (_symbol == IPayment(address(this)).withdrawChannel.selector) {
-				func = abi.encodePacked(func, "(address,bytes32,uint256)");
+				func = abi.encodePacked(func, "(address,uint256,uint256,bytes)");
 			}
 				
 			// Calulate the signature for set call function
@@ -87,7 +87,6 @@ abstract contract RuleEngine {
 
 			// Add the rule
 			rules[_symbol] = versionSel;
-			console.log("_symbol:", uint32(_symbol));
 		}
 	}
 
@@ -96,8 +95,6 @@ abstract contract RuleEngine {
 		uint256 tokens, address versionAddress, bytes calldata versionData)
 		internal returns(bool success, bytes memory _data) {
 
-		console.log("versionAddress:", versionAddress);
-		console.log("rules[sel]:", uint32(rules[sel]));
 		// Call version function to set payment via its selector
 		if (rules[sel] == bytes4(0)) {
 			revert RuleInvalid();
@@ -106,8 +103,6 @@ abstract contract RuleEngine {
 		(success, _data) = versionAddress.delegatecall(
 						abi.encodeWithSelector(rules[sel],
 							from, amount, tokens, versionData));
-
-		console.log("inexecrule:success:", success);
 	}
 
 	// 

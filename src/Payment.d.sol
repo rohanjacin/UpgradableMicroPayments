@@ -225,7 +225,6 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
 
     	// Call version1 or version 2 createChannel method
     	bytes4 sel = IPayment(address(this)).createChannel.selector;
-    	console.log("sel:", uint32(sel));
 
     	bool success;
     	bytes memory _data;
@@ -253,17 +252,21 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
     						sel, payer, amount, claimTokens,
     						paymentInfo.versionCode, data);
 
-/*    	require(success, "Payment call failed");
+    	assembly {
+    		_amount := mload(add(_data, 0x60))
+    		numberOfTokens := mload(add(_data, 0x80))
+    	}
+    	require(success, "Payment call failed");
 
-        uint256 payableAmount = (amount * claimTokens) /
+        uint256 payableAmount = ((_amount / 1 ether) * claimTokens) /
                                  numberOfTokens;    		
-        
+
         require(payableAmount > 0, "No amount is payable");
 
         (bool sent, ) = payable(msg.sender).call{value: payableAmount}("");
         
         require(sent, "Failed to send Ether");
-*/    }
+    }
 
     modifier onlyAdmin {
         if (msg.sender != admin) revert("Not Admin");

@@ -33,7 +33,6 @@ contract PaymentV1 is BaseVersionD, BaseStateD, BaseSymbolD, BaseDataD {
         bytes calldata _versionState, bytes calldata _versionSymbol)
         public returns(bool success){
 
-        console.log("in copyVersionData");
         // Copy version num
         success = BaseVersionD.copyVersion(_versionNum);
         // Copy version state as per schema
@@ -66,8 +65,6 @@ contract PaymentV1 is BaseVersionD, BaseStateD, BaseSymbolD, BaseDataD {
     function createChannelV1(address merchant, uint256 amount,
         uint256 numberOfTokens, bytes calldata data) public payable {
 //bytes32 trustAnchor, uint256 numberOfTokens, uint256 withdrawAfterBlocks
-        console.log("In createChannelV1:amount:", amount);
-        console.log("In createChannelV1:msg.value:", msg.value);
        
         // Perform preset checks for channel
         require(msg.value == amount, "incorrect amount sent.");
@@ -75,7 +72,6 @@ contract PaymentV1 is BaseVersionD, BaseStateD, BaseSymbolD, BaseDataD {
         // Create a channel for merchant
         bytes memory _data = abi.encodePacked(data);
         BaseStateD.setState(merchant, _data);  
-        console.log("end of createChannelV1");      
     }
 /*
 bytes32 finalHashValue,
@@ -83,32 +79,29 @@ bytes32 finalHashValue,
     // Withdraw from channel
     function withdrawChannelV1(address payer, uint256 amount,
         uint256 numberOfTokensUsed, bytes calldata data) public
-        returns(uint256 _amount, uint256 numberOfTokens) {
-
-        console.log("In withdrawChannelV1:amount:", amount);
-        console.log("In withdrawChannelV1:numberOfTokensUsed:", numberOfTokensUsed);
+        returns(bytes memory _returnData) {
 
         bytes memory _data = BaseStateD.getState(payer, msg.sender);        
         
         bytes32 _trustAnchor;
-        uint256 withdrawAfterBlocks;
-
+        uint256 _withdrawAfterBlocks;
+        uint256 _amount;
+        uint256 numberOfTokens = 1;
         assembly {
             let ptr := mload(_data)
 
-            _trustAnchor := mload(add(_data, 0x20))
-            amount := mload(add(_data, 0x40))
-            withdrawAfterBlocks := mload(add(_data, 0x60))
+            _trustAnchor := mload(add(_data, 0x00))
+            _amount := mload(add(_data, 0x20))
+            _withdrawAfterBlocks := mload(add(_data, 0x40))
         }
 
-        console.log("amount:", amount);
-        console.log("withdrawAfterBlocks:", withdrawAfterBlocks);
+        require(amount > 0, "Wrong channel");
 
-  /*      require(amount > 0, "Wrong channel");
-*/
-/*        require(_verifyHashchain(_trustAnchor, finalHashValue,
-                numberOfTokensUsed), "Verification failed");
-*/    }
+        //require(_verifyHashchain(_trustAnchor, finalHashValue,
+        //        numberOfTokensUsed), "Verification failed");
+
+        _returnData = abi.encodePacked(_amount, numberOfTokens);
+    }
 
     // Inherited from BaseState - all implemented and supported states in versions
     function supportedStates() public pure override returns (bytes memory) {
