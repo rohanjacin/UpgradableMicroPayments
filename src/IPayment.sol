@@ -7,9 +7,14 @@ interface IPayment {
 
 	function getVersionConfigurator() external view returns(address);
 
+    // Starts a payment instance
+    function newPayment(uint8 _version, address _bidder)
+        external returns (bool success, string memory message);
+
     // Create channel for payment (9c2eb48b)
     function createChannel(address merchant, uint256 amount,
-    	uint256 numberOfTokens, bytes calldata data)
+    	uint256 numberOfTokens, bytes calldata data,
+        bytes calldata signature)
     	external payable;
 
     // Withdraw from channel (ad9085d1)

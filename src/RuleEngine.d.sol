@@ -32,13 +32,17 @@ abstract contract RuleEngine {
 			numSelectors := div(mload(add(selectors, 0x40)), 4) 
 		}
 
-		uint8 numSymbols;
+		uint256 numSymbols;
 		assembly {
 			numSymbols := mload(add(symbols, 0x20))
 		}
+
+		console.log("numSymbols:", numSymbols);
+		console.log("numSelectors:", numSelectors);
+
 		assert(numSymbols == numSelectors);
 
-		for (uint8 i = numSymbols; i > 0; i--) {
+		for (uint256 i = numSymbols; i > 0; i--) {
 
 			// Append state symbol to default set cell call
 			bytes4 _symbol;
@@ -54,9 +58,11 @@ abstract contract RuleEngine {
 			bytes memory func;
 
 			if (_symbol == IPayment(address(this)).createChannel.selector) {
+				console.log("here");
 				func = abi.encodePacked("createChannel");
 			}
 			else if (_symbol == IPayment(address(this)).withdrawChannel.selector) {
+				console.log("here1");
 				func = abi.encodePacked("withdrawChannel");
 			}
 			else {
@@ -66,7 +72,7 @@ abstract contract RuleEngine {
 			func = abi.encodePacked(func, _version/*toSymbolString(_version, 2)*/);
 
 			if (_symbol == IPayment(address(this)).createChannel.selector) {
-				func = abi.encodePacked(func, "(address,uint256,uint256,bytes)");
+				func = abi.encodePacked(func, "(address,uint256,uint256,bytes,bytes)");
 			}
 			else if (_symbol == IPayment(address(this)).withdrawChannel.selector) {
 				func = abi.encodePacked(func, "(address,uint256,uint256,bytes)");

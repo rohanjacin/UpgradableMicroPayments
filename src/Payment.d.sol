@@ -10,7 +10,7 @@ import "./VersionConfigurator.sol";
 import "./IVersionConfigurator.sol";
 import { IVersion } from "./IVersion.d.sol";
 import { IPayment } from "./IPayment.sol";
-import {IERC20} from "forge-std/interfaces/IERC20.sol";
+import {IERC20Permit} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol";
 
 // Errors
 error VersionInvalid();
@@ -175,13 +175,16 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
 		paymentInfo.versionData = config.dataAddress;
 
 		// Add version rules
+		console.log("config.symbolLen:", config.symbolLen);
 		uint8 _symbolLen = uint8(config.symbolLen/6);
-		
+		console.log("_symbolLen:", _symbolLen);
+
 		BaseSymbolD.Symbols memory _symbols = BaseSymbolD.Symbols(
 			{v: new bytes6[](_symbolLen)});
 		
 		for (uint8 i = 0; i < _symbolLen; i++) {
 			_symbols.v[i] = getSymbol(i);
+			console.log("_symbols.v[i]:", uint48(_symbols.v[i]));
 		}
 
 		addRules(paymentInfo.versionCode, _symbols);
@@ -218,9 +221,11 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
 
     // Create channel for payment
     function createChannel(address merchant, uint256 amount,
-    	uint256 numberOfTokens, bytes calldata data)
+    	uint256 numberOfTokens, bytes calldata data, 
+    	bytes calldata signature)
     	public payable {
 
+    		console.log("in createChannel:");
     	require (amount == msg.value, "Amount mismatch");
     	require (merchant != address(0), "Invalid address");
 
@@ -235,10 +240,19 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
     	
     	require(success, "Payment call failed");
 
-    	address test;
-    	success = IERC20(test).permit(msg.sender, this, numberOfTokens,
-    							block.timestamp + withdrawAfterBlocks);
-    }
+    	console.log("hereee");
+    	bytes8 id = channel[msg.sender][merchant].tokenIds[version];
+    	uint256 deadline = channel[msg.sender][merchant].withdrawAfterBlocks;
+    	console.log("idd:", uint64(id));
+    	bytes32 tokenId = BaseStateD.getState(version);
+    	console.log("tokenId:", uint256(tokenId));
+    	
+    	(uint8 v, bytes32 r, bytes32 s) = abi.decode(signature,
+    								(uint8, bytes32, bytes32));
+/*    	IERC20Permit(address(bytes20(tokenId)))
+    		.permit(msg.sender, address(this), numberOfTokens,
+    			  	deadline, v, r, s);
+*/    }
 
     // Withdraw from channel
     function withdrawChannel(address payer, uint256 amount, 
@@ -272,8 +286,8 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
         
         require(sent, "Failed to send Ether");
 
-        address test;
-        IERC20(test).transferFrom(payer, msg.sender, payableAmount);
+        //address test;
+        //IERC20(test).transferFrom(payer, msg.sender, payableAmount);
     }
 
     modifier onlyAdmin {

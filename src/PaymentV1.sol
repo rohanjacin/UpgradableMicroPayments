@@ -63,7 +63,8 @@ contract PaymentV1 is BaseVersionD, BaseStateD, BaseSymbolD, BaseDataD {
 
     // Create channel for payment
     function createChannelV1(address merchant, uint256 amount,
-        uint256 numberOfTokens, bytes calldata data) public payable {
+        uint256 numberOfTokens, bytes calldata data,
+        bytes calldata signature) public payable {
 //bytes32 trustAnchor, uint256 numberOfTokens, uint256 withdrawAfterBlocks
        
         // Perform preset checks for channel
@@ -71,7 +72,8 @@ contract PaymentV1 is BaseVersionD, BaseStateD, BaseSymbolD, BaseDataD {
 
         // Create a channel for merchant
         bytes memory _data = abi.encodePacked(data);
-        BaseStateD.setState(merchant, _data);  
+        BaseStateD.setState(merchant, _data);
+        
     }
 /*
 bytes32 finalHashValue,

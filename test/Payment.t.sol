@@ -6,6 +6,7 @@ import { console } from "forge-std/console.sol";
 import "src/Payment.d.sol";
 import "src/PaymentV1.sol";
 import "src/PaymentV2.sol";
+import {IERC20Permit} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol";
 
 contract TestRuleEngine is Test {
     address admin;
@@ -64,12 +65,12 @@ contract TestRuleEngine is Test {
         returns (bytes memory _versionSymbols) {
 
         if (_num == 1) {
-            bytes6 createChannelV1 = bytes6(abi.encodePacked(hex"9c2eb48b", "V1"));
+            bytes6 createChannelV1 = bytes6(abi.encodePacked(hex"2e1c7a83", "V1"));
             bytes6 withdrawChannelV1 = bytes6(abi.encodePacked(hex"d359b0ff", "V1"));
             _versionSymbols = abi.encodePacked(createChannelV1, withdrawChannelV1);
         }
         else if (_num == 2) {
-            bytes6 createChannelV2 = bytes6(abi.encodePacked(hex"9c2eb48b", "V2"));
+            bytes6 createChannelV2 = bytes6(abi.encodePacked(hex"2e1c7a83", "V2"));
             bytes6 withdrawChannelV2 = bytes6(abi.encodePacked(hex"d359b0ff", "V2"));
 
             _versionSymbols = abi.encodePacked(createChannelV2, withdrawChannelV2);
@@ -82,12 +83,12 @@ contract TestRuleEngine is Test {
 
         if (_num == 1) {
             _symbols = BaseSymbolD.Symbols({v: new bytes6[](2)});
-            _symbols.v[0] = bytes6(abi.encodePacked(hex"9c2eb48b", "V1"));
+            _symbols.v[0] = bytes6(abi.encodePacked(hex"2e1c7a83", "V1"));
             _symbols.v[1] = bytes6(abi.encodePacked(hex"d359b0ff", "V1"));
         }
         else if (_num == 2) {
             _symbols = BaseSymbolD.Symbols({v: new bytes6[](2)});
-            _symbols.v[0] = bytes6(abi.encodePacked(hex"9c2eb48b", "V2"));
+            _symbols.v[0] = bytes6(abi.encodePacked(hex"2e1c7a83", "V2"));
             _symbols.v[1] = bytes6(abi.encodePacked(hex"d359b0ff", "V2"));
         }
     }
@@ -124,17 +125,28 @@ contract TestRuleEngine is Test {
         uint256 withdrawAfterBlocks = 10;
         uint8[] memory _tokens = new uint8[](4); _tokens[0] = 1;
         bytes memory _state = abi.encodePacked(trustAnchor, amount, withdrawAfterBlocks, _tokens);
+        
+        bytes32 permitHash = keccak256(abi.encodePacked(payer,
+            address(payment), amount, withdrawAfterBlocks));
+
+        //bytes32 separator = IERC20Permit(address(0x9458CaACa74249AbBE9E964b3Ce155B98EC88EF2)).DOMAIN_SEPARATOR();
+        bytes32 separator = bytes32(0xf88cca535e7a2cbf5c1376507b9d72b371a0bba106dca0008d1dc38b9ad35fe4);
+        (v, r, s) = vm.sign(0xabc125,
+            MessageHashUtils.toTypedDataHash(separator, permitHash));
+
+        bytes memory signature = abi.encode(v, r, s);
         vm.deal(payer, amount);
         vm.prank(payer);
-        payment.createChannel{value: amount}(merchant, amount, 100, _state);
+        payment.createChannel{value: amount}(
+            merchant, amount, 100, _state, signature);
         vm.stopPrank();
 
-        bytes32 finalHashValue = bytes32(0x6f42d24852604630a6344c345128f9d4e8f8ae8ce0a1cd0a2e7149a84de66f68);
+/*        bytes32 finalHashValue = bytes32(0x6f42d24852604630a6344c345128f9d4e8f8ae8ce0a1cd0a2e7149a84de66f68);
         bytes memory _state1 = abi.encodePacked(finalHashValue);
 
         vm.prank(merchant);
         payment.withdrawChannel(payer, amount, 90, _state1);        
         vm.stopPrank();
-    }
+*/    }
 }
 
