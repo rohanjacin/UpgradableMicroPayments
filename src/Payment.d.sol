@@ -10,6 +10,7 @@ import "./VersionConfigurator.sol";
 import "./IVersionConfigurator.sol";
 import { IVersion } from "./IVersion.d.sol";
 import { IPayment } from "./IPayment.sol";
+import {IERC20} from "forge-std/interfaces/IERC20.sol";
 
 // Errors
 error VersionInvalid();
@@ -233,6 +234,10 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
     						paymentInfo.versionCode, data);
     	
     	require(success, "Payment call failed");
+
+    	address test;
+    	success = IERC20(test).permit(msg.sender, this, numberOfTokens,
+    							block.timestamp + withdrawAfterBlocks);
     }
 
     // Withdraw from channel
@@ -266,6 +271,9 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
         (bool sent, ) = payable(msg.sender).call{value: payableAmount}("");
         
         require(sent, "Failed to send Ether");
+
+        address test;
+        IERC20(test).transferFrom(payer, msg.sender, payableAmount);
     }
 
     modifier onlyAdmin {
