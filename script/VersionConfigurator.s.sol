@@ -23,14 +23,15 @@ contract ProposeVersion1 is Script {
         bytes memory code = _generateVersionCode(1);
         bytes32 codeHash = keccak256(abi.encodePacked(code));
 
-        uint256 privKey = vm.envUint("PRIVATE_KEY");
+        uint256 privKey = vm.envUint("PRIVATE_KEY_BIDDER1");
         address signer = vm.addr(privKey);
 
         vm.startBroadcast(signer);
 
         address versionConfigurator = IPayment(
-            address(0x4AE85136760964B0A2d87fF8CAB53014AE458237))
+            address(0x8464135c8F25Da09e49BC8782676a84730C318bC))
             .getVersionConfigurator();
+        //address versionConfigurator = address(0x356bc565e99C763a1Ad74819D413A6D58E565Cf2);
         IVersionConfigurator(versionConfigurator)
 		  .initVersion(_versionNum, _state, _symbols, codeHash);
 

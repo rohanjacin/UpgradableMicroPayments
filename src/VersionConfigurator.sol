@@ -58,6 +58,7 @@ contract VersionConfigurator {
         bytes32 _versionCodeHash
     ) external payable returns (bool success) {
         
+        console.log("initVersion");
         // Check for sender's address
         if (msg.sender == address(0)) {
             revert BiddersAddressInvalid();

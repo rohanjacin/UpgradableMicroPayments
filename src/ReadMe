@@ -1,0 +1,9 @@
+forge script script/Payment.s.sol:DeployPayment --fork-url http://localhost:8545 --broadcast -vvvv -i 1
+
+forge script script/VersionConfigurator.s.sol:ProposeVersion1 --fork-url http://localhost:8545 --broadcast -vvvv -i 1
+
+forge script script/Payment.s.sol:NewPayment --fork-url http://localhost:8545 --broadcast -vvvv -i 1
+
+forge script script/Payment.s.sol:CreateChannel --fork-url http://localhost:8545 --broadcast -vvvv -i 1
+
+forge script script/Payment.s.sol:WithdrawChannel --fork-url http://localhost:8545 --broadcast -vvvv -i 1

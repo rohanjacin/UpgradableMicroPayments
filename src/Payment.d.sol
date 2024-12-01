@@ -11,6 +11,7 @@ import "./IVersionConfigurator.sol";
 import { IVersion } from "./IVersion.d.sol";
 import { IPayment } from "./IPayment.sol";
 import {IERC20Permit} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20//IERC20.sol";
 
 // Errors
 error VersionInvalid();
@@ -69,6 +70,7 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
 
 	// Fetches version configurator
 	function getVersionConfigurator() external view returns(address) {
+		console.log("in getVersionConfigurator");
 		return house.versionConfigurator();
 	}
 
@@ -277,17 +279,25 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
     	}
     	require(success, "Payment call failed");
 
+    	console.log("in withdraw:_amount:", _amount);
+    	console.log("in withdraw:numberOfTokens:", numberOfTokens);
+    	console.log("in withdraw:claimTokens:", claimTokens);
+
         uint256 payableAmount = ((_amount / 1 ether) * claimTokens) /
                                  numberOfTokens;    		
 
+        console.log("payableAmount:", payableAmount);
+
         require(payableAmount > 0, "No amount is payable");
 
-        (bool sent, ) = payable(msg.sender).call{value: payableAmount}("");
+        //(bool sent, ) = payable(msg.sender).call{value: payableAmount}("");
         
-        require(sent, "Failed to send Ether");
+        //require(sent, "Failed to send Ether");
 
         //address test;
-        //IERC20(test).transferFrom(payer, msg.sender, payableAmount);
+        bytes32 tokenId = BaseStateD.getState(version);
+        console.log("wtokenId:", uint256(tokenId));
+        IERC20(address(bytes20(tokenId))).transferFrom(payer, msg.sender, payableAmount);
     }
 
     modifier onlyAdmin {
