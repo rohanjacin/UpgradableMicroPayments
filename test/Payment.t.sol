@@ -5,7 +5,6 @@ import "forge-std/Test.sol";
 import { console } from "forge-std/console.sol";
 import "src/Payment.d.sol";
 import "src/PaymentV1.sol";
-import "src/PaymentV2.sol";
 import {IERC20Permit} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol";
 
 contract TestRuleEngine is Test {
@@ -36,8 +35,6 @@ contract TestRuleEngine is Test {
 
         if (_num == 1)
             _versionCode = type(PaymentV1).creationCode;
-        else if (_num == 2) 
-            _versionCode = type(PaymentV2).creationCode;
     }
 
     // Generates version number

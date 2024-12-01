@@ -59,7 +59,5 @@ contract BaseSymbolD {
             let s := add(keccak256(ptr, 0x20), id)
 			val := sload(s)
         }
-
-        console.log("symb:", uint48(val));
     }
 }

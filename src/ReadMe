@@ -7,3 +7,16 @@ forge script script/Payment.s.sol:NewPayment --fork-url http://localhost:8545 --
 forge script script/Payment.s.sol:CreateChannel --fork-url http://localhost:8545 --broadcast -vvvv -i 1
 
 forge script script/Payment.s.sol:WithdrawChannel --fork-url http://localhost:8545 --broadcast -vvvv -i 1
+
+
+
+
+forge script --chain sepolia script/Payment.s.sol:DeployPayment --rpc-url $SEPOLIA_RPC_URL --broadcast --verify -vvvv -i 1
+
+forge script --chain sepolia script/VersionConfigurator.s.sol:ProposeVersion1 $SEPOLIA_RPC_URL --broadcast --verify -vvvv -i 1
+
+forge script --chain sepolia script/Payment.s.sol:NewPayment --fork-url $SEPOLIA_RPC_URL --broadcast --verify -vvvv -i 1
+
+forge script --chain sepolia script/Payment.s.sol:CreateChannel --fork-url $SEPOLIA_RPC_URL --broadcast --verify -vvvv -i 1
+
+forge script --chain sepolia script/Payment.s.sol:WithdrawChannel --fork-url $SEPOLIA_RPC_URL --broadcast --verify -vvvv -i 1

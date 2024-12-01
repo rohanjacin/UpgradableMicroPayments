@@ -5,7 +5,6 @@ import "forge-std/Test.sol";
 import { console } from "forge-std/console.sol";
 import "src/RuleEngine.d.sol";
 import "src/PaymentV1.sol";
-import "src/PaymentV2.sol";
 
 contract TestRuleEngine is Test {
     address admin;
@@ -107,23 +106,6 @@ contract TestRuleEngine is Test {
 
         vm.prank(bidder1);
         //ruleEngine.addRules(address(paymentV1), symbolsStates);
-        vm.stopPrank();
-    }
-
-    // Test add rules
-    function test_addRulesV2() external {
-
-        bytes memory number = _generateVersionNum(2);
-        bytes memory state = _generateState(2);
-        bytes memory symbols = _generateSymbols(2);
-        BaseSymbolD.Symbols memory symbolsStates = _setSymbols(2);
-
-        vm.prank(bidder1);
-        PaymentV2 paymentV2 = new PaymentV2(number, state, symbols);
-        vm.stopPrank();
-
-        vm.prank(bidder1);
-        //ruleEngine.addRules(address(paymentV2), symbolsStates);
         vm.stopPrank();
     }
 }

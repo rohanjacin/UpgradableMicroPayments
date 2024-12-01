@@ -11,7 +11,7 @@ import "./IVersionConfigurator.sol";
 import { IVersion } from "./IVersion.d.sol";
 import { IPayment } from "./IPayment.sol";
 import {IERC20Permit} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20//IERC20.sol";
+import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 // Errors
 error VersionInvalid();
@@ -70,12 +70,11 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
 
 	// Fetches version configurator
 	function getVersionConfigurator() external view returns(address) {
-		console.log("in getVersionConfigurator");
 		return house.versionConfigurator();
 	}
 
 	// Direct calls to valid MicroPay Version Contract
-	function callVersion(uint8 id, bytes calldata versionCall)
+	function callVersion(bytes calldata versionCall)
 		external payable returns(bool success, bytes memory data) {
 
 		// PaymentVersion Address + encoded Function Data (i.e sel, params)
@@ -88,7 +87,7 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
 	}
 
 	// Retrieves the payment version contract's data
-	function retrieveVersion(uint8 num, address data)
+	function retrieveVersion(address data)
 		internal returns (bytes memory _num,
 		bytes memory _state, bytes memory _symbol) {
 
@@ -97,16 +96,9 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
 		uint8 _statelen;
 		uint8 _symbollen;
 
-		if (num == 1) {
-			_numlen = 1;
-			_statelen = 32;
-			_symbollen = 2;
-		}
-		else if (num == 2) {
-			_numlen = 1;
-			_statelen = 32;
-			_symbollen = 2;
-		}
+		_numlen = 1;
+		_statelen = 32;
+		_symbollen = 2;
 
 		assembly {
 			// Total length and start
@@ -132,7 +124,6 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
 			mstore(0x40, add(_symbol, 0x40))			
 		}
 
-		console.log("");
 	}
 
 	// Loads the version
@@ -151,21 +142,17 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
 
 		(bytes memory _versionnum, 
 		 bytes memory _versionstate,
-		 bytes memory _versionsymbol) = retrieveVersion(uint8(config.num),
-		 								config.dataAddress);
+		 bytes memory _versionsymbol) = retrieveVersion(config.dataAddress);
 
 		// Copy Version via delegatecall	
 		bytes memory cdata = abi.encodeCall(IVersion.copyVersionData,
 			(_versionnum, _versionstate, _versionsymbol));
 		
-		console.log("config.codeAddress:", config.codeAddress);
-
 		uint256 size;
 		address addr = config.codeAddress;
 		assembly {
 			size := extcodesize(addr)
 		}
-		console.log("SIZE:", size);
 		(success, ) = config.codeAddress.delegatecall(cdata);
 
 		if (success == false) {
@@ -177,16 +164,13 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
 		paymentInfo.versionData = config.dataAddress;
 
 		// Add version rules
-		console.log("config.symbolLen:", config.symbolLen);
 		uint8 _symbolLen = uint8(config.symbolLen/6);
-		console.log("_symbolLen:", _symbolLen);
 
 		BaseSymbolD.Symbols memory _symbols = BaseSymbolD.Symbols(
 			{v: new bytes6[](_symbolLen)});
 		
 		for (uint8 i = 0; i < _symbolLen; i++) {
 			_symbols.v[i] = getSymbol(i);
-			console.log("_symbols.v[i]:", uint48(_symbols.v[i]));
 		}
 
 		addRules(paymentInfo.versionCode, _symbols);
@@ -227,39 +211,35 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
     	bytes calldata signature)
     	public payable {
 
-    		console.log("in createChannel:");
     	require (amount == msg.value, "Amount mismatch");
     	require (merchant != address(0), "Invalid address");
 
     	// Call version1 or version 2 createChannel method
-    	bytes4 sel = IPayment(address(this)).createChannel.selector;
+    	//bytes4 sel = IPayment(address(this)).createChannel.selector;
 
     	bool success;
     	bytes memory _data;
-    	(success, _data) = execRule(
-    						sel, merchant, amount, numberOfTokens,
-    						paymentInfo.versionCode, data);
+    	(success, _data) = execRule(IPayment(address(this)).createChannel.selector,
+    						merchant, amount, numberOfTokens,
+    						paymentInfo.versionCode, data, signature);
     	
     	require(success, "Payment call failed");
 
-    	console.log("hereee");
-    	bytes8 id = channel[msg.sender][merchant].tokenIds[version];
     	uint256 deadline = channel[msg.sender][merchant].withdrawAfterBlocks;
-    	console.log("idd:", uint64(id));
     	bytes32 tokenId = BaseStateD.getState(version);
-    	console.log("tokenId:", uint256(tokenId));
     	
     	(uint8 v, bytes32 r, bytes32 s) = abi.decode(signature,
     								(uint8, bytes32, bytes32));
-/*    	IERC20Permit(address(bytes20(tokenId)))
+
+    	IERC20Permit(address(uint160(uint256(tokenId))))
     		.permit(msg.sender, address(this), numberOfTokens,
     			  	deadline, v, r, s);
-*/    }
+    }
 
     // Withdraw from channel
     function withdrawChannel(address payer, uint256 amount, 
     	uint256 claimTokens, bytes calldata data)
-    	public returns (uint256 _amount, uint256 numberOfTokens) {
+    	public returns (bool sent) {
 
     	require (payer != address(0), "Invalid address");
     	require (claimTokens != 0, "Invalid tokens");
@@ -273,31 +253,23 @@ contract Payment is BaseVersionD, BaseStateD, BaseSymbolD, BaseData, RuleEngine 
     						sel, payer, amount, claimTokens,
     						paymentInfo.versionCode, data);
 
+    	uint256 _amount;
+    	uint256 numberOfTokens;
     	assembly {
     		_amount := mload(add(_data, 0x60))
     		numberOfTokens := mload(add(_data, 0x80))
     	}
     	require(success, "Payment call failed");
 
-    	console.log("in withdraw:_amount:", _amount);
-    	console.log("in withdraw:numberOfTokens:", numberOfTokens);
-    	console.log("in withdraw:claimTokens:", claimTokens);
-
         uint256 payableAmount = ((_amount / 1 ether) * claimTokens) /
                                  numberOfTokens;    		
 
-        console.log("payableAmount:", payableAmount);
-
         require(payableAmount > 0, "No amount is payable");
 
-        //(bool sent, ) = payable(msg.sender).call{value: payableAmount}("");
-        
-        //require(sent, "Failed to send Ether");
-
-        //address test;
         bytes32 tokenId = BaseStateD.getState(version);
-        console.log("wtokenId:", uint256(tokenId));
-        IERC20(address(bytes20(tokenId))).transferFrom(payer, msg.sender, payableAmount);
+        sent = IERC20(address(uint160(uint256(tokenId)))).transferFrom(payer, msg.sender, payableAmount);
+        
+        require(sent, "Failed to send token");
     }
 
     modifier onlyAdmin {

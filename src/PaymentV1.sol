@@ -25,6 +25,7 @@ contract PaymentV1 is BaseVersionD, BaseStateD, BaseSymbolD, BaseDataD {
         for (uint256 i = 0; i < numberOfTokensUsed; i++) {
             finalHashValue = keccak256(abi.encode(finalHashValue));
         }
+
         return finalHashValue == trustAnchor;
     }
 
@@ -47,7 +48,7 @@ contract PaymentV1 is BaseVersionD, BaseStateD, BaseSymbolD, BaseDataD {
         Tokens memory _state = BaseStateD.Tokens({v: new bytes32[](1)});
         _state.v[0] = bytes32(_tokens[0:32]);
 
-        success = BaseStateD.copyState(1, _state);
+        success = BaseStateD.copyState(_state);
     }   
 
     // Copies symbols into payment storage as per schema
@@ -65,19 +66,17 @@ contract PaymentV1 is BaseVersionD, BaseStateD, BaseSymbolD, BaseDataD {
     function createChannelV1(address merchant, uint256 amount,
         uint256 numberOfTokens, bytes calldata data,
         bytes calldata signature) public payable {
-//bytes32 trustAnchor, uint256 numberOfTokens, uint256 withdrawAfterBlocks
-       
+
         // Perform preset checks for channel
         require(msg.value == amount, "incorrect amount sent.");
 
         // Create a channel for merchant
         bytes memory _data = abi.encodePacked(data);
-        BaseStateD.setState(merchant, _data);
+        BaseStateD.setState(merchant, _data);        
         
+        signature=signature;       
     }
-/*
-bytes32 finalHashValue,
-        uint256 numberOfTokensUsed*/
+
     // Withdraw from channel
     function withdrawChannelV1(address payer, uint256 amount,
         uint256 numberOfTokensUsed, bytes calldata data) public
@@ -89,12 +88,15 @@ bytes32 finalHashValue,
         uint256 _withdrawAfterBlocks;
         uint256 _amount;
         uint256 numberOfTokens = 1;
+        bytes32 finalHashValue;
         assembly {
-            let ptr := mload(_data)
-
             _trustAnchor := mload(add(_data, 0x00))
             _amount := mload(add(_data, 0x20))
             _withdrawAfterBlocks := mload(add(_data, 0x40))
+        }
+
+        assembly {
+            finalHashValue := mload(add(_data, 0x00))
         }
 
         require(amount > 0, "Wrong channel");
@@ -103,6 +105,7 @@ bytes32 finalHashValue,
         //        numberOfTokensUsed), "Verification failed");
 
         _returnData = abi.encodePacked(_amount, numberOfTokens);
+        data=data;
     }
 
     // Inherited from BaseState - all implemented and supported states in versions

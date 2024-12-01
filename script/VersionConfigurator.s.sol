@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: Unlicense
+pragma solidity 0.8.27;
+import "forge-std/console.sol";
+
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 import {BaseVersionD} from "../src/BaseVersion.d.sol";
@@ -7,7 +11,6 @@ import {BaseDataD} from "../src/BaseData.d.sol";
 import {VersionConfigurator} from "../src/VersionConfigurator.sol";
 import {IVersionConfigurator} from "../src/IVersionConfigurator.sol";
 import {PaymentV1} from "../src/PaymentV1.sol";
-import {PaymentV2} from "../src/PaymentV2.sol";
 import { ECDSA } from "openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
 import "openzeppelin-contracts/contracts/utils/cryptography/MessageHashUtils.sol";
 import "../src/IVersionConfigurator.sol";
@@ -54,8 +57,6 @@ contract ProposeVersion1 is Script {
 
         if (_num == 1)
             _versionCode = type(PaymentV1).creationCode;
-        else if (_num == 2) 
-            _versionCode = type(PaymentV2).creationCode;
     }
 
     // Generates version number
@@ -73,9 +74,9 @@ contract ProposeVersion1 is Script {
         returns (bytes memory _versionState) {
 
         if (_num == 1)
-            _versionState = abi.encodePacked(bytes32(0x1c8aff950685c2ed4bc3174f3472287b56d9517b9c948127319a09a7a36deac8));
+            _versionState = abi.encodePacked(abi.encode(address(0x5FbDB2315678afecb367f032d93F642f64180aa3)));
         else if (_num == 2)
-            _versionState = abi.encodePacked(bytes32(0x0652eee475adfb5c8a28481abd58887b7722a06fc1f675ac72caac9c7fa9c98e));
+            _versionState = abi.encodePacked(abi.encode(address(0x5FbDB2315678afecb367f032d93F642f64180aa3)));
     }
 
     // Generates symbols for a version

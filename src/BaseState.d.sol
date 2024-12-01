@@ -27,7 +27,7 @@ contract BaseStateD {
 	mapping (address => mapping (address => Channel)) channel;
 
 	// Updates the base state data to the callers context when delegated
-	function copyState(uint8 _version, Tokens memory _tokens)
+	function copyState(Tokens memory _tokens)
 		public virtual returns(bool success) {
 
 		assembly {
@@ -111,13 +111,6 @@ contract BaseStateD {
 			 mstore(add(_data, 0x60), sload(add(bslot, 3))) 
 			 mstore(0x40, add(_data, 0x80))
         }
-
-        console.log("In get state");
-        console.log("trustAnchor:", uint256(channel[payer][merchant].trustAnchor));
-        console.log("amount:", channel[payer][merchant].amount);
-        console.log("withdrawAfterBlocks:", channel[payer][merchant].withdrawAfterBlocks);
-        console.log("tokens[0]:", uint64(channel[payer][merchant].tokenIds[0]));
-
     }
 
     function setState(address merchant, bytes memory _data) public virtual {
@@ -144,13 +137,6 @@ contract BaseStateD {
 			 sstore(add(bslot, 2), mload(add(_data, 0x60))) //withdrawAfterBlocks
 			 sstore(add(bslot, 3), mload(add(_data, 0x80))) //tokenIds
         }
-
-        console.log("In set state");
-        console.log("trustAnchor:", uint256(channel[msg.sender][merchant].trustAnchor));
-        console.log("amount:", channel[msg.sender][merchant].amount);
-        console.log("withdrawAfterBlocks:", channel[msg.sender][merchant].withdrawAfterBlocks);
-        console.log("tokens:", uint64(channel[msg.sender][merchant].tokenIds[0]));
-
     }
 
 	// To be overriden by version

@@ -37,9 +37,6 @@ abstract contract RuleEngine {
 			numSymbols := mload(add(symbols, 0x20))
 		}
 
-		console.log("numSymbols:", numSymbols);
-		console.log("numSelectors:", numSelectors);
-
 		assert(numSymbols == numSelectors);
 
 		for (uint256 i = numSymbols; i > 0; i--) {
@@ -58,11 +55,9 @@ abstract contract RuleEngine {
 			bytes memory func;
 
 			if (_symbol == IPayment(address(this)).createChannel.selector) {
-				console.log("here");
 				func = abi.encodePacked("createChannel");
 			}
 			else if (_symbol == IPayment(address(this)).withdrawChannel.selector) {
-				console.log("here1");
 				func = abi.encodePacked("withdrawChannel");
 			}
 			else {
@@ -98,7 +93,8 @@ abstract contract RuleEngine {
 
 	// Execute a payment method as per the rule
 	function execRule(bytes4 sel, address from, uint256 amount, 
-		uint256 tokens, address versionAddress, bytes calldata versionData)
+		uint256 tokens, address versionAddress,
+		bytes calldata versionData, bytes calldata signature)
 		internal returns(bool success, bytes memory _data) {
 
 		// Call version function to set payment via its selector
@@ -107,8 +103,24 @@ abstract contract RuleEngine {
 		}
 
 		(success, _data) = versionAddress.delegatecall(
-						abi.encodeWithSelector(rules[sel],
-							from, amount, tokens, versionData));
+						abi.encodeWithSelector(rules[sel], from,
+							amount, tokens, versionData, signature));
+	}
+
+	// Execute a payment method as per the rule
+	function execRule(bytes4 sel, address from, uint256 amount, 
+		uint256 tokens, address versionAddress,
+		bytes calldata versionData)
+		internal returns(bool success, bytes memory _data) {
+
+		// Call version function to set payment via its selector
+		if (rules[sel] == bytes4(0)) {
+			revert RuleInvalid();
+		}
+
+		(success, _data) = versionAddress.delegatecall(
+						abi.encodeWithSelector(rules[sel], from,
+							amount, tokens, versionData));
 	}
 
 	// 

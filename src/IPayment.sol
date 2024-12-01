@@ -20,5 +20,5 @@ interface IPayment {
     // Withdraw from channel (ad9085d1)
     function withdrawChannel(address payer, uint256 amount,
     	uint256 claimTokens, bytes calldata data)
-    	external returns (bytes memory);
+    	external returns (bool sent);
 }
